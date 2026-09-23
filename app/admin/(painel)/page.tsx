@@ -4,7 +4,7 @@ import { formatDateTime, formatEUR, statusLabel } from "@/lib/format";
 
 export default function AdminHome() {
   const stats = salesStats();
-  const recent = listOrders(8);
+  const recent = listOrders({ limit: 8 });
   return (
     <div className="stack">
       <div className="stats">

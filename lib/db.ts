@@ -82,7 +82,8 @@ CREATE TABLE IF NOT EXISTS orders (
   download_token TEXT UNIQUE,
   download_expires_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  paid_at TEXT
+  paid_at TEXT,
+  archived INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS orders_status ON orders(status);
 
@@ -126,6 +127,13 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
+/** Colunas acrescentadas depois da primeira versão: adiciona-as às bases de dados já existentes. */
+function migrate(raw: DatabaseSync) {
+  const has = (table: string, col: string) =>
+    (raw.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
+  if (!has("orders", "archived")) raw.exec("ALTER TABLE orders ADD COLUMN archived INTEGER NOT NULL DEFAULT 0");
+}
+
 /**
  * Base de dados SQLite incluída no próprio Node.js (node:sqlite) — não precisa de compilação
  * nem de dependências nativas, funciona igual em Windows, macOS e Linux.
@@ -144,6 +152,7 @@ function open(): Db {
   const raw = new DatabaseSync(path.join(config.dataDir, "galeria.db"));
   raw.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   raw.exec(SCHEMA);
+  migrate(raw);
   return {
     prepare: (sql) => raw.prepare(sql),
     exec: (sql) => raw.exec(sql),

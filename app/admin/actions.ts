@@ -286,6 +286,37 @@ export async function adminMarkPaid(orderId: number) {
   revalidatePath("/admin/encomendas");
 }
 
+/** Encomendas pagas nunca são apagadas (registo de vendas e acesso do cliente às fotos) — só arquivadas. */
+export async function setOrderArchived(orderId: number, archived: boolean) {
+  await requireAdmin();
+  db().prepare(`UPDATE orders SET archived = ? WHERE id = ?`).run(archived ? 1 : 0, orderId);
+  revalidatePath("/admin/encomendas");
+}
+
+/**
+ * Só se apagam encomendas que nunca vão ser pagas: falhadas, expiradas, ou pendentes há mais de 14 dias
+ * (um pagamento Multibanco pode ser confirmado dias depois; apagar antes faria o cliente pagar sem receber).
+ */
+const DELETABLE_SQL = `status IN ('failed', 'expired') OR (status = 'pending' AND created_at < datetime('now', '-14 days'))`;
+
+export async function deleteOrder(orderId: number) {
+  await requireAdmin();
+  db().prepare(`DELETE FROM orders WHERE id = ? AND (${DELETABLE_SQL})`).run(orderId);
+  revalidatePath("/admin/encomendas");
+}
+
+export async function deleteUnpaidOrders() {
+  await requireAdmin();
+  db().prepare(`DELETE FROM orders WHERE ${DELETABLE_SQL}`).run();
+  revalidatePath("/admin/encomendas");
+}
+
+export async function setEventPublished(eventId: number, published: boolean) {
+  await requireAdmin();
+  db().prepare(`UPDATE events SET published = ? WHERE id = ?`).run(published ? 1 : 0, eventId);
+  revalidatePath("/", "layout");
+}
+
 export async function resendEmail(orderId: number) {
   await requireAdmin();
   extendDownload(orderId);

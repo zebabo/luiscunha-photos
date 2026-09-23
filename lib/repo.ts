@@ -74,6 +74,7 @@ export type OrderRow = {
   download_expires_at: string | null;
   created_at: string;
   paid_at: string | null;
+  archived: number;
 };
 
 export type OrderItemRow = {
@@ -259,13 +260,33 @@ export function getOrderPhotos(orderId: number): (PhotoRow & { event_title: stri
     .all(orderId, orderId, orderId) as (PhotoRow & { event_title: string })[];
 }
 
-export function listOrders(limit = 200): (OrderRow & { item_count: number })[] {
+export type OrderFilter = "ativas" | "pagas" | "pendentes" | "arquivadas";
+
+const ORDER_FILTERS: Record<OrderFilter, string> = {
+  ativas: "o.archived = 0",
+  pagas: "o.archived = 0 AND o.status = 'paid'",
+  pendentes: "o.archived = 0 AND o.status <> 'paid'",
+  arquivadas: "o.archived = 1",
+};
+
+export function listOrders(
+  opts: { filter?: OrderFilter; limit?: number; offset?: number } = {},
+): (OrderRow & { item_count: number })[] {
+  const where = ORDER_FILTERS[opts.filter ?? "ativas"];
   return db()
     .prepare(
       `SELECT o.*, (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_count
-       FROM orders o ORDER BY o.id DESC LIMIT ?`,
+       FROM orders o WHERE ${where} ORDER BY o.id DESC LIMIT ? OFFSET ?`,
     )
-    .all(limit) as (OrderRow & { item_count: number })[];
+    .all(opts.limit ?? 50, opts.offset ?? 0) as (OrderRow & { item_count: number })[];
+}
+
+export function countOrders(): Record<OrderFilter, number> {
+  const out = {} as Record<OrderFilter, number>;
+  for (const [k, where] of Object.entries(ORDER_FILTERS)) {
+    out[k as OrderFilter] = (db().prepare(`SELECT COUNT(*) AS n FROM orders o WHERE ${where}`).get() as { n: number }).n;
+  }
+  return out;
 }
 
 export function salesStats() {

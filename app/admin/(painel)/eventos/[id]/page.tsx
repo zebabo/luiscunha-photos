@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getEvent, listEventCars, listEventPhotos } from "@/lib/repo";
 import { centsToInput } from "@/lib/format";
 import { thumbUrl } from "@/lib/media";
-import { addCar, bulkPhotos, deleteCar, deleteEvent, importCars, updateCar, updateEvent } from "../../../actions";
+import { addCar, bulkPhotos, deleteCar, deleteEvent, importCars, setEventPublished, updateCar, updateEvent } from "../../../actions";
 import { EventForm, SimpleActionForm } from "@/components/admin/EventForm";
 import { Uploader } from "@/components/admin/Uploader";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -36,14 +36,38 @@ export default async function AdminEvent({ params, searchParams }: Props) {
     <div className="stack">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <h1 style={{ margin: 0 }}>{event.title}</h1>
-        {event.published ? (
-          <Link className="btn secondary small" href={`/eventos/${event.slug}`} target="_blank">
-            Ver no site ↗
-          </Link>
-        ) : (
-          <span className="pill draft">Rascunho — não visível no site</span>
+        {!!event.published && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span className="pill paid">Publicado</span>
+            <Link className="btn secondary small" href={`/eventos/${event.slug}`} target="_blank">
+              Ver no site ↗
+            </Link>
+            <ConfirmButton
+              action={setEventPublished.bind(null, event.id, false)}
+              message="Esconder este evento do site? As fotos e encomendas mantêm-se."
+              className="link-btn"
+            >
+              Despublicar
+            </ConfirmButton>
+          </div>
         )}
       </div>
+
+      {!event.published && (
+        <div className="publish-banner">
+          <div>
+            <strong>Este evento ainda não está publicado</strong> — não aparece no site.
+            <div className="hint">
+              {all.length === 0
+                ? "Ainda não carregaste fotos. Podes publicar já, mas o evento aparece vazio."
+                : `${all.length} fotos · ${cars.length} carros. Confirma os preços e publica quando estiver pronto.`}
+            </div>
+          </div>
+          <form action={setEventPublished.bind(null, event.id, true)}>
+            <button className="btn accent">Publicar agora</button>
+          </form>
+        </div>
+      )}
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Detalhes e preços</h2>
