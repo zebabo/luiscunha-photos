@@ -1,5 +1,5 @@
 import "server-only";
-import Database from "better-sqlite3";
+import { DatabaseSync, type StatementSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config";
@@ -126,19 +126,42 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
-const globalForDb = globalThis as unknown as { __galeriaDb?: Database.Database };
+/**
+ * Base de dados SQLite incluída no próprio Node.js (node:sqlite) — não precisa de compilação
+ * nem de dependências nativas, funciona igual em Windows, macOS e Linux.
+ */
+export type Db = {
+  prepare(sql: string): StatementSync;
+  exec(sql: string): void;
+  /** Devolve uma função que corre `fn` dentro de uma transação (tudo ou nada). */
+  transaction<T>(fn: () => T): () => T;
+};
 
-function open(): Database.Database {
+const globalForDb = globalThis as unknown as { __galeriaDb?: Db };
+
+function open(): Db {
   fs.mkdirSync(config.dataDir, { recursive: true });
-  const db = new Database(path.join(config.dataDir, "galeria.db"));
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
-  db.pragma("busy_timeout = 5000");
-  db.exec(SCHEMA);
-  return db;
+  const raw = new DatabaseSync(path.join(config.dataDir, "galeria.db"));
+  raw.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
+  raw.exec(SCHEMA);
+  return {
+    prepare: (sql) => raw.prepare(sql),
+    exec: (sql) => raw.exec(sql),
+    transaction: (fn) => () => {
+      raw.exec("BEGIN IMMEDIATE");
+      try {
+        const result = fn();
+        raw.exec("COMMIT");
+        return result;
+      } catch (err) {
+        raw.exec("ROLLBACK");
+        throw err;
+      }
+    },
+  };
 }
 
-export function db(): Database.Database {
+export function db(): Db {
   if (!globalForDb.__galeriaDb) globalForDb.__galeriaDb = open();
   return globalForDb.__galeriaDb;
 }

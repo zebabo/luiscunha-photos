@@ -34,7 +34,7 @@ com pesquisa por carro/piloto, packs e pagamento por MB Way, Multibanco e cartã
 
 ## Arrancar localmente
 
-Requer Node.js 20+.
+Requer Node.js 22.13 ou mais recente (recomendado: 24 LTS). Não é preciso Python nem ferramentas de compilação.
 
 ```bash
 npm install
