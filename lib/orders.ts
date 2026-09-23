@@ -5,7 +5,8 @@ import { config } from "./config";
 import { getOrder, getOrderPhotos, type OrderRow } from "./repo";
 import { downloadEmail, sendMail } from "./email";
 import { formatDate } from "./format";
-import type { Quote } from "./cart-types";
+import type { Quote, QuoteLine } from "./cart-types";
+import type { Lang } from "./i18n";
 
 export function randomToken(bytes = 24): string {
   return crypto.randomBytes(bytes).toString("base64url");
@@ -15,6 +16,7 @@ export function createOrder(input: {
   email: string;
   name: string;
   nif: string;
+  lang: Lang;
   quote: Quote;
   provider: string;
 }): OrderRow {
@@ -23,14 +25,15 @@ export function createOrder(input: {
   const id = d.transaction(() => {
     const res = d
       .prepare(
-        `INSERT INTO orders (public_id, email, name, nif, subtotal_cents, discount_cents, total_cents, discount_code, provider)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO orders (public_id, email, name, nif, lang, subtotal_cents, discount_cents, total_cents, discount_code, provider)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         randomToken(16),
         input.email,
         input.name,
         input.nif,
+        input.lang,
         quote.subtotalCents,
         quote.discountCents,
         quote.totalCents,
@@ -39,14 +42,21 @@ export function createOrder(input: {
       );
     const orderId = Number(res.lastInsertRowid);
     const ins = d.prepare(
-      `INSERT INTO order_items (order_id, kind, photo_id, event_id, label, price_cents) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO order_items (order_id, kind, photo_id, car_id, event_id, label, price_cents) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const l of quote.lines) {
-      ins.run(orderId, l.type, l.photoId ?? null, l.eventId, `${l.eventTitle} — ${l.label}`, l.priceCents);
+      ins.run(orderId, l.type, l.photoId ?? null, l.carId ?? null, l.eventId, lineLabel(l), l.priceCents);
     }
     return orderId;
   })();
   return getOrder(id)!;
+}
+
+/** Descrição guardada na encomenda (vista no admin e no Stripe). */
+export function lineLabel(l: QuoteLine): string {
+  if (l.type === "pack") return `${l.eventTitle} — Evento completo (${l.photoCount} fotos)`;
+  if (l.type === "carpack") return `${l.eventTitle} — Pack piloto ${l.subject} (${l.photoCount} fotos)`;
+  return `${l.eventTitle} — Foto ${l.subject}`;
 }
 
 export function setProviderRef(orderId: number, ref: string) {
@@ -88,11 +98,13 @@ export async function markPaid(orderId: number, providerRef?: string): Promise<O
 export async function sendDownloadEmail(order: OrderRow) {
   if (order.status !== "paid" || !order.download_token) return;
   try {
+    const lang = order.lang === "en" ? "en" : "pt";
     const mail = downloadEmail({
+      lang,
       name: order.name,
       url: downloadUrl(order),
       photoCount: getOrderPhotos(order.id).length,
-      expires: formatDate(order.download_expires_at),
+      expires: formatDate(order.download_expires_at, lang),
     });
     await sendMail({ to: order.email, ...mail });
   } catch (err) {

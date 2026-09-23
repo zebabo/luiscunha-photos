@@ -1,21 +1,24 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { getEvent, setPhotoBibs } from "@/lib/repo";
+import { getEvent } from "@/lib/repo";
 import { ACCEPTED_TYPES, processUpload } from "@/lib/images";
 import { removePhotoFiles, writeFile } from "@/lib/storage";
-import { parseBibs } from "@/lib/format";
 
 const MAX_BYTES = 60 * 1024 * 1024;
 
-/** Upload de uma fotografia (o browser envia uma a uma para mostrar progresso). */
+/** Upload de uma fotografia (o browser envia uma a uma para mostrar progresso), opcionalmente já associada a um carro. */
 export async function POST(req: Request) {
   if (!(await isAdmin())) return Response.json({ error: "Sessão expirada." }, { status: 401 });
 
   const form = await req.formData();
   const eventId = Number(form.get("eventId"));
+  const carId = Number(form.get("carId")) || null;
   const file = form.get("file");
   if (!getEvent(eventId)) return Response.json({ error: "Evento não encontrado." }, { status: 404 });
+  if (carId && !db().prepare(`SELECT 1 FROM event_cars WHERE id = ? AND event_id = ?`).get(carId, eventId)) {
+    return Response.json({ error: "Carro não encontrado neste evento." }, { status: 400 });
+  }
   if (!(file instanceof File)) return Response.json({ error: "Ficheiro em falta." }, { status: 400 });
 
   const ext = ACCEPTED_TYPES[file.type];
@@ -37,18 +40,17 @@ export async function POST(req: Request) {
       writeFile("previews", key, "jpg", processed.preview),
       writeFile("thumbs", key, "jpg", processed.thumb),
     ]);
-    const originalName = file.name.replace(/\.[^.]+$/, "").slice(0, 200);
-    const id = Number(
-      db()
-        .prepare(
-          `INSERT INTO photos (event_id, file_key, original_ext, original_name, width, height) VALUES (?, ?, ?, ?, ?, ?)`,
-        )
-        .run(eventId, key, ext, originalName, processed.width, processed.height).lastInsertRowid,
-    );
-    // Dorsais no nome do ficheiro, ex.: "IMG_0042_d123_d456.jpg" -> 123, 456
-    const fromName = [...originalName.matchAll(/(?:^|[_\-\s])d(\d{1,6})(?=$|[_\-\s])/gi)].map((m) => m[1]);
-    const bibs = parseBibs([String(form.get("bibs") ?? ""), ...fromName].join(","));
-    if (bibs.length) setPhotoBibs(id, bibs);
+    const d = db();
+    const id = d.transaction(() => {
+      const photoId = Number(
+        d
+          .prepare(`INSERT INTO photos (event_id, file_key, original_ext, original_name, width, height) VALUES (?, ?, ?, ?, ?, ?)`)
+          .run(eventId, key, ext, file.name.replace(/\.[^.]+$/, "").slice(0, 200), processed.width, processed.height)
+          .lastInsertRowid,
+      );
+      if (carId) d.prepare(`INSERT INTO photo_cars (photo_id, car_id) VALUES (?, ?)`).run(photoId, carId);
+      return photoId;
+    })();
     return Response.json({ id, key });
   } catch (err) {
     await removePhotoFiles(key, ext);

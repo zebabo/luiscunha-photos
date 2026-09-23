@@ -1,64 +1,47 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { searchPublishedByBib } from "@/lib/repo";
-import { parseBibs } from "@/lib/format";
-import { PhotoGrid, type GridPhoto } from "@/components/PhotoGrid";
+import { searchCars } from "@/lib/repo";
+import { formatDate } from "@/lib/format";
+import { thumbUrl } from "@/lib/media";
+import { getT } from "@/lib/i18n-server";
+import { SearchBar } from "@/components/SearchBar";
 
-export const metadata: Metadata = { title: "Procurar por dorsal" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return { title: t("search.title"), robots: { index: false } };
+}
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<{ dorsal?: string }> }) {
-  const { dorsal } = await searchParams;
-  const bib = parseBibs(dorsal)[0];
-  const results = bib ? searchPublishedByBib(bib) : [];
-
-  // Agrupa por evento
-  const groups = new Map<number, { slug: string; title: string; photos: GridPhoto[] }>();
-  for (const r of results) {
-    let g = groups.get(r.event_id);
-    if (!g) {
-      g = { slug: r.event_slug, title: r.event_title, photos: [] };
-      groups.set(r.event_id, g);
-    }
-    g.photos.push({
-      id: r.id,
-      key: r.file_key,
-      bibs: r.bibs,
-      priceCents: r.price_photo_cents,
-      eventId: r.event_id,
-      eventTitle: r.event_title,
-    });
-  }
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q: raw } = await searchParams;
+  const q = (raw ?? "").trim().slice(0, 60);
+  const { lang, t } = await getT();
+  const results = q ? searchCars(q) : [];
 
   return (
     <div className="container">
-      <section className="hero" style={{ paddingBottom: 8 }}>
-        <h1>Procurar por dorsal</h1>
-        <form className="search-bar" role="search">
-          <input name="dorsal" defaultValue={bib ?? ""} placeholder="N.º de dorsal" inputMode="numeric" autoFocus aria-label="Número de dorsal" />
-          <button className="btn" type="submit">
-            Procurar
-          </button>
-        </form>
+      <section className="hero-plain">
+        <h1>{t("search.title")}</h1>
+        <SearchBar t={t} defaultValue={q} autoFocus={!q} />
       </section>
-
-      {bib && results.length === 0 && (
-        <p className="empty">
-          Não encontrámos fotografias com o dorsal <strong>{bib}</strong>. Algumas fotos podem não estar identificadas —
-          experimente <Link href="/#eventos">ver o evento completo</Link>.
-        </p>
+      {q && results.length === 0 && <p className="empty">{t("search.none", { q })}</p>}
+      {results.length > 0 && (
+        <>
+          <p className="muted">{t("search.results", { n: results.length, q })}</p>
+          <div className="car-grid">
+            {results.map((c) => (
+              <Link key={c.id} href={`/eventos/${c.event_slug}/carro/${encodeURIComponent(c.number)}`} className="car-card">
+                <div className="img">{c.cover_key && <img src={thumbUrl(c.cover_key)} alt="" loading="lazy" />}</div>
+                <span className="num">{c.number}</span>
+                <div className="info">
+                  <div className="driver">{c.driver || `#${c.number}`}</div>
+                  <div className="team">{c.event_title} · {formatDate(c.event_date, lang)}</div>
+                  <div className="count">{t("event.photos", { n: c.photo_count })}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
-
-      {[...groups.values()].map((g) => (
-        <section key={g.slug}>
-          <h2>
-            <Link href={`/eventos/${g.slug}?dorsal=${encodeURIComponent(bib!)}`}>{g.title}</Link>{" "}
-            <span className="muted" style={{ fontSize: "1rem" }}>
-              · {g.photos.length} foto(s)
-            </span>
-          </h2>
-          <PhotoGrid photos={g.photos} highlightBib={bib} />
-        </section>
-      ))}
     </div>
   );
 }

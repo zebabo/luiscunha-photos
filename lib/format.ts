@@ -1,14 +1,19 @@
-const eur = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+import { LOCALE, type Lang } from "./i18n";
 
-export function formatEUR(cents: number): string {
-  return eur.format(cents / 100);
+const eur: Record<Lang, Intl.NumberFormat> = {
+  pt: new Intl.NumberFormat(LOCALE.pt, { style: "currency", currency: "EUR" }),
+  en: new Intl.NumberFormat(LOCALE.en, { style: "currency", currency: "EUR" }),
+};
+
+export function formatEUR(cents: number, lang: Lang = "pt"): string {
+  return eur[lang].format(cents / 100);
 }
 
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, lang: Lang = "pt"): string {
   if (!value) return "";
   const d = new Date(value.length === 10 ? `${value}T12:00:00` : value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("pt-PT", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Lisbon" });
+  return d.toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Lisbon" });
 }
 
 /** Aceita ISO ou o formato UTC do SQLite ("2026-01-31 18:05:00"). */
@@ -44,14 +49,4 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-/** "123, 45 7" -> ["123","45","7"] */
-export function parseBibs(input: string | null | undefined): string[] {
-  if (!input) return [];
-  const bibs = input
-    .split(/[\s,;]+/)
-    .map((b) => b.trim().toUpperCase())
-    .filter((b) => /^[A-Z0-9-]{1,12}$/.test(b));
-  return [...new Set(bibs)];
 }

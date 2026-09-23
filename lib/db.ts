@@ -13,10 +13,23 @@ CREATE TABLE IF NOT EXISTS events (
   event_date TEXT,
   location TEXT NOT NULL DEFAULT '',
   price_photo_cents INTEGER NOT NULL,
+  price_car_pack_cents INTEGER,
   price_pack_cents INTEGER,
   cover_photo_id INTEGER,
   published INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Carros/pilotos inscritos num evento
+CREATE TABLE IF NOT EXISTS event_cars (
+  id INTEGER PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  number TEXT NOT NULL,
+  driver TEXT NOT NULL DEFAULT '',
+  team TEXT NOT NULL DEFAULT '',
+  cover_photo_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (event_id, number)
 );
 
 CREATE TABLE IF NOT EXISTS photos (
@@ -31,12 +44,13 @@ CREATE TABLE IF NOT EXISTS photos (
 );
 CREATE INDEX IF NOT EXISTS photos_event ON photos(event_id);
 
-CREATE TABLE IF NOT EXISTS photo_bibs (
+-- Uma foto pode ter mais do que um carro (ex.: batalhas em tandem)
+CREATE TABLE IF NOT EXISTS photo_cars (
   photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
-  bib TEXT NOT NULL,
-  PRIMARY KEY (photo_id, bib)
+  car_id INTEGER NOT NULL REFERENCES event_cars(id) ON DELETE CASCADE,
+  PRIMARY KEY (photo_id, car_id)
 );
-CREATE INDEX IF NOT EXISTS photo_bibs_bib ON photo_bibs(bib);
+CREATE INDEX IF NOT EXISTS photo_cars_car ON photo_cars(car_id);
 
 CREATE TABLE IF NOT EXISTS discount_codes (
   id INTEGER PRIMARY KEY,
@@ -57,6 +71,7 @@ CREATE TABLE IF NOT EXISTS orders (
   email TEXT NOT NULL,
   name TEXT NOT NULL DEFAULT '',
   nif TEXT NOT NULL DEFAULT '',
+  lang TEXT NOT NULL DEFAULT 'pt',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'expired')),
   subtotal_cents INTEGER NOT NULL,
   discount_cents INTEGER NOT NULL DEFAULT 0,
@@ -74,13 +89,41 @@ CREATE INDEX IF NOT EXISTS orders_status ON orders(status);
 CREATE TABLE IF NOT EXISTS order_items (
   id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  kind TEXT NOT NULL CHECK (kind IN ('photo', 'pack')),
+  kind TEXT NOT NULL CHECK (kind IN ('photo', 'carpack', 'pack')),
   photo_id INTEGER REFERENCES photos(id) ON DELETE SET NULL,
+  car_id INTEGER REFERENCES event_cars(id) ON DELETE SET NULL,
   event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
   label TEXT NOT NULL,
   price_cents INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS order_items_order ON order_items(order_id);
+
+-- Conteúdo do site (editável no admin)
+CREATE TABLE IF NOT EXISTS upcoming_events (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  date_label TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '',
+  image_key TEXT,
+  link_url TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS portfolio (
+  id INTEGER PRIMARY KEY,
+  image_key TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  caption TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 const globalForDb = globalThis as unknown as { __galeriaDb?: Database.Database };

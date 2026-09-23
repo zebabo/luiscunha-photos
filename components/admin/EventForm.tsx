@@ -10,6 +10,7 @@ type EventValues = {
   event_date?: string | null;
   location?: string;
   price_photo?: string;
+  price_car_pack?: string;
   price_pack?: string;
   published?: boolean;
 };
@@ -31,7 +32,7 @@ export function EventForm({
       <div className="row">
         <div className="field" style={{ flexGrow: 2 }}>
           <label htmlFor="title">Nome do evento *</label>
-          <input id="title" name="title" required defaultValue={values.title} placeholder="Ex.: Trail da Serra 2026" />
+          <input id="title" name="title" required defaultValue={values.title} placeholder="Ex.: CPDrift Pinhel" />
         </div>
         <div className="field">
           <label htmlFor="slug">Endereço (URL)</label>
@@ -52,7 +53,11 @@ export function EventForm({
           <input id="price_photo" name="price_photo" required inputMode="decimal" defaultValue={values.price_photo ?? "5,00"} />
         </div>
         <div className="field">
-          <label htmlFor="price_pack">Preço do pack (€)</label>
+          <label htmlFor="price_car_pack">Pack piloto (€)</label>
+          <input id="price_car_pack" name="price_car_pack" inputMode="decimal" defaultValue={values.price_car_pack} placeholder="vazio = sem pack" />
+        </div>
+        <div className="field">
+          <label htmlFor="price_pack">Pack evento completo (€)</label>
           <input id="price_pack" name="price_pack" inputMode="decimal" defaultValue={values.price_pack} placeholder="vazio = sem pack" />
         </div>
       </div>

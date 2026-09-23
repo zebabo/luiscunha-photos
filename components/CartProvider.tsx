@@ -83,11 +83,11 @@ export function useCart(): CartContextValue {
   return ctx;
 }
 
-export function CartLink() {
+export function CartLink({ label }: { label: string }) {
   const { count, ready } = useCart();
   return (
-    <a href="/carrinho" className="cart-link" aria-label={`Carrinho (${count})`}>
-      Carrinho {ready && count > 0 && <span className="badge">{count}</span>}
+    <a href="/carrinho" className="cart-link" aria-label={`${label} (${count})`}>
+      {label} {ready && count > 0 && <span className="badge">{count}</span>}
     </a>
   );
 }

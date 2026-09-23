@@ -16,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin/eventos">Eventos e fotos</Link>
         <Link href="/admin/encomendas">Encomendas</Link>
         <Link href="/admin/descontos">Códigos de desconto</Link>
+        <Link href="/admin/site">Site (logótipo, textos, portefólio)</Link>
         <form action={logout} style={{ marginLeft: "auto" }}>
           <button className="btn secondary small">Sair</button>
         </form>

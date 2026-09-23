@@ -3,6 +3,8 @@ import Stripe from "stripe";
 import { config } from "./config";
 import type { OrderRow } from "./repo";
 import type { Quote } from "./cart-types";
+import type { Lang } from "./i18n";
+import { lineLabel } from "./orders";
 
 let client: Stripe | null = null;
 
@@ -16,7 +18,7 @@ export function stripe(): Stripe {
  * Cria uma sessão Stripe Checkout. Os métodos (cartão, MB Way, Multibanco, Apple/Google Pay)
  * são os que estiverem ativos no dashboard do Stripe — não é preciso alterar código.
  */
-export async function createStripeCheckout(order: OrderRow, quote: Quote): Promise<{ id: string; url: string }> {
+export async function createStripeCheckout(order: OrderRow, quote: Quote, lang: Lang): Promise<{ id: string; url: string }> {
   const s = stripe();
   let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
   if (quote.discountCents > 0) {
@@ -31,7 +33,7 @@ export async function createStripeCheckout(order: OrderRow, quote: Quote): Promi
   }
   const session = await s.checkout.sessions.create({
     mode: "payment",
-    locale: "pt",
+    locale: lang === "en" ? "en" : "pt",
     customer_email: order.email,
     client_reference_id: String(order.id),
     metadata: { orderId: String(order.id) },
@@ -41,7 +43,7 @@ export async function createStripeCheckout(order: OrderRow, quote: Quote): Promi
       price_data: {
         currency: "eur",
         unit_amount: l.priceCents,
-        product_data: { name: `${l.eventTitle} — ${l.label}` },
+        product_data: { name: lineLabel(l) },
       },
     })),
     discounts,

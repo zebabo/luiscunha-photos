@@ -1,34 +1,36 @@
-# Galeria — venda de fotografias online
+# Luís Cunha Photos — site e loja de fotografia de drift
 
-Site próprio para vender fotografias de eventos (trail, corridas, desporto, festas…), feito para substituir
-uma galeria Pixieset sem comissões nem mensalidade de plataforma.
+Site próprio para substituir o Pixieset: portefólio, próximos eventos e **venda direta das fotos dos eventos**,
+com pesquisa por carro/piloto, packs e pagamento por MB Way, Multibanco e cartão. Em português, com opção de inglês.
 
 ## O que faz
 
-**Para o cliente**
-- Lista de eventos com capa, data e local
-- **Pesquisa por n.º de dorsal** em todos os eventos ou dentro de um evento
-- Galeria com pré-visualizações **com marca de água** e visualizador em ecrã inteiro
-- Carrinho com fotos avulsas e **packs** ("todas as fotos do evento por X €")
+**Para o piloto / cliente**
+- Página inicial com capa, pesquisa, eventos recentes, próximos eventos e portefólio
+- Em cada evento, **grelha dos carros** (número, piloto, equipa) — clica no seu carro e vê só as suas fotos
+- **Pesquisa** por número do carro, nome do piloto ou equipa, em todos os eventos
+- Página de cada carro com o **pack do piloto** ("todas as minhas fotos deste evento") e a poupança face a fotos avulsas
+- Foto avulsa, pack de piloto e pack de evento completo (o site nunca cobra duas vezes a mesma foto)
+- Fotos em batalha (tandem) podem pertencer a dois carros
 - **Códigos de desconto** (percentagem ou valor fixo, por evento, com limite de usos e validade)
 - Pagamento por **MB Way, Multibanco, cartão, Apple Pay e Google Pay** (Stripe)
-- Download imediato dos **originais sem marca de água** (foto a foto ou ZIP), com link enviado por email
-  e válido durante N dias
+- Download imediato dos **originais sem marca de água** (foto a foto ou ZIP) + link por email, válido N dias
+- Páginas Sobre e Contacto (formulário, WhatsApp, Instagram), termos e privacidade
+- **Português e inglês** (botão PT/EN; na primeira visita segue o idioma do browser)
 
 **Para o fotógrafo (`/admin`)**
-- Criar eventos, definir preços e pack, publicar/despublicar
-- Upload em massa (arrastar e largar); as pré-visualizações com marca de água são geradas automaticamente
-- Dorsais: por foto, em massa (colar `IMG_0042: 123, 456`) ou **automaticamente pelo nome do ficheiro**
-  (`IMG_0042_d123_d456.jpg`)
-- Encomendas (com NIF para faturação), reenviar email, marcar como paga manualmente
-- Resumo de vendas e eventos que mais vendem
+- **Site**: logótipo (também usado como marca de água), imagem de capa, textos PT/EN, contactos,
+  próximos eventos (com cartaz) e portefólio
+- **Eventos**: preços (foto, pack piloto, pack evento), publicar/despublicar
+- **Carros**: adicionar um a um ou colar a lista de inscritos (`28; David Karatas; KRT Racing`)
+- **Upload por carro**: escolhe o carro, arrasta as fotos desse piloto — ficam logo associadas
+- Ações em massa nas fotos: associar/juntar/tirar carro, capa do carro/evento, apagar
+- Encomendas (com NIF), reenviar email, marcar como paga; resumo de vendas
 
 **Segurança**
-- Os originais ficam numa pasta privada, nunca acessível sem um link de compra válido
+- Os originais ficam numa pasta privada, só acessível com um link de compra válido
 - Preços e descontos calculados sempre no servidor
 - Pagamentos confirmados por webhook assinado do Stripe, com verificação do valor pago
-
-**SEO**: páginas por evento com metadados e imagem de partilha, `sitemap.xml`, `robots.txt`, dados estruturados.
 
 ## Arrancar localmente
 
@@ -42,11 +44,15 @@ npm run dev                     # http://localhost:3000  ·  admin em /admin
 ```
 
 Sem Stripe configurado o site usa **pagamentos de demonstração** (um botão "Simular pagamento"), útil para
-mostrar o fluxo completo. Para gerar fotografias de teste com dorsais no nome:
+mostrar o fluxo completo. Para gerar dados de teste:
 
 ```bash
-npm run demo-photos      # cria ./data/demo-fotos/*.jpg — arrastar para o upload no admin
+npm run demo-photos
+# cria ./data/demo-fotos/ com: logo.png, inscritos.txt, carro-28/, carro-111/, carro-7/, carro-42/, gerais/
 ```
+
+Depois, no admin: **Site** → carregar `logo.png`; **Eventos** → criar evento → colar `inscritos.txt` →
+escolher cada carro e arrastar a pasta respetiva → publicar.
 
 ## Pôr em produção
 
@@ -86,8 +92,10 @@ Fazer **backups** regulares da pasta `DATA_DIR` (contém os originais e as encom
 
 ## Próximos passos possíveis
 - Emissão automática de fatura (API InvoiceXpress / Moloni)
+- Sugestão automática do carro em cada foto (reconhecimento do número/pintura)
+- Página do piloto com as fotos de toda a época
+- Importar as galerias antigas do Pixieset
 - Armazenamento das fotos em Cloudflare R2 / S3 (só é preciso alterar `lib/storage.ts`)
-- Reconhecimento automático de dorsais nas fotos (OCR)
 - ifthenpay/Easypay como alternativa ao Stripe (comissões MB Way/Multibanco mais baixas)
 - Venda de impressões
 

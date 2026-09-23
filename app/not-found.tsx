@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n-server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { t } = await getT();
   return (
     <div className="container empty">
-      <h1>Página não encontrada</h1>
+      <h1>{t("notfound.title")}</h1>
       <Link href="/" className="btn">
-        Voltar ao início
+        {t("notfound.back")}
       </Link>
     </div>
   );

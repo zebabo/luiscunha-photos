@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { config } from "@/lib/config";
+import { getT } from "@/lib/i18n-server";
 
 export const metadata: Metadata = { title: "Política de privacidade" };
 
 // Modelo base (RGPD) — deve ser revisto e completado com os dados do responsável pelo tratamento.
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { lang } = await getT();
+  if (lang === "en") return <PrivacyPageEn />;
   return (
     <div className="container prose" style={{ paddingTop: 40 }}>
       <h1>Política de privacidade</h1>
@@ -40,6 +43,38 @@ export default function PrivacyPage() {
           www.cnpd.pt
         </a>
         ).
+      </p>
+    </div>
+  );
+}
+
+function PrivacyPageEn() {
+  return (
+    <div className="container prose" style={{ paddingTop: 40 }}>
+      <h1>Privacy policy</h1>
+      <p className="muted">[To be completed with the data controller&apos;s details: name, tax number, address, contact.]</p>
+      <h2>What we collect</h2>
+      <p>
+        To process orders we collect your email, name and, if provided, your tax number for invoicing. Payments are
+        processed by Stripe; we do not store card details.
+      </p>
+      <h2>How we use it</h2>
+      <p>To deliver the purchased photos, issue the invoice and comply with legal obligations. No marketing without consent.</p>
+      <h2>Event photos</h2>
+      <p>
+        Photos are taken at public events. If you appear in a photo and want it removed from the gallery, contact us
+        {config.contactEmail && (
+          <>
+            {" "}
+            at <a href={`mailto:${config.contactEmail}`}>{config.contactEmail}</a>
+          </>
+        )}{" "}
+        and we will handle it as a priority.
+      </p>
+      <h2>Your rights</h2>
+      <p>
+        You may request access, rectification or erasure of your data, and lodge a complaint with the Portuguese data
+        protection authority (CNPD).
       </p>
     </div>
   );

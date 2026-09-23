@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEventBySlug, listEventPhotos } from "@/lib/repo";
-import { formatDate, formatEUR, parseBibs } from "@/lib/format";
+import { getEventBySlug, listEventCars, listEventPhotos } from "@/lib/repo";
+import { formatDate, formatEUR } from "@/lib/format";
 import { previewUrl } from "@/lib/media";
+import { getT } from "@/lib/i18n-server";
+import { carLabel } from "@/lib/cart-types";
 import { PackButton, PhotoGrid } from "@/components/PhotoGrid";
+import { CarGrid } from "@/components/CarGrid";
 
-type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ dorsal?: string }> };
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const event = getEventBySlug(slug);
   if (!event || !event.published) return {};
+  const { t } = await getT();
   const description =
     event.description ||
-    `${event.photo_count} fotografias de ${event.title}${event.location ? ` em ${event.location}` : ""}. Compre e descarregue em alta resolução.`;
+    `${event.title}${event.location ? ` · ${event.location}` : ""} — ${t("event.photos", { n: event.photo_count })}.`;
   return {
     title: event.title,
     description,
@@ -23,70 +27,81 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function EventPage({ params, searchParams }: Props) {
+export default async function EventPage({ params }: Props) {
   const { slug } = await params;
-  const { dorsal } = await searchParams;
   const event = getEventBySlug(slug);
   if (!event || !event.published) notFound();
+  const { lang, t } = await getT();
 
-  const bib = parseBibs(dorsal)[0];
-  const photos = listEventPhotos(event.id, bib);
+  const cars = listEventCars(event.id).filter((c) => c.photo_count > 0);
+  const photos = listEventPhotos(event.id);
+  const carById = new Map(cars.map((c) => [c.id, c]));
   const hasPack = event.price_pack_cents != null && event.photo_count > 0;
 
   return (
     <div className="container">
       <section className="event-head">
         <div>
-          <p className="meta" style={{ margin: 0 }}>
-            <Link href="/">Eventos</Link> / {formatDate(event.event_date)}
+          <p className="eyebrow" style={{ margin: 0 }}>
+            <Link href="/eventos">{t("nav.events")}</Link> · {formatDate(event.event_date, lang)}
             {event.location && ` · ${event.location}`}
           </p>
-          <h1>{event.title}</h1>
+          <h1 style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}>{event.title}</h1>
           {event.description && <p className="muted" style={{ whiteSpace: "pre-line" }}>{event.description}</p>}
           <p className="muted">
-            {event.photo_count} fotografias · {formatEUR(event.price_photo_cents)} por fotografia
+            {[
+              t("event.photos", { n: event.photo_count }),
+              cars.length ? t("event.cars", { n: cars.length }) : "",
+              t("event.pricePhoto", { price: formatEUR(event.price_photo_cents, lang) }),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         {hasPack && (
           <div className="card pack-box">
-            <strong>Pack completo do evento</strong>
-            <span className="price">{formatEUR(event.price_pack_cents!)}</span>
-            <span className="hint">Todas as {event.photo_count} fotografias em alta resolução.</span>
-            <PackButton eventId={event.id} priceCents={event.price_pack_cents!} />
+            <strong>{t("event.packTitle")}</strong>
+            <span className="price">{formatEUR(event.price_pack_cents!, lang)}</span>
+            <span className="hint">{t("event.packDesc", { n: event.photo_count })}</span>
+            <PackButton item={{ type: "pack", eventId: event.id }} eventId={event.id} priceCents={event.price_pack_cents!} />
           </div>
         )}
       </section>
 
-      <div className="toolbar">
-        <form>
-          <input name="dorsal" defaultValue={bib ?? ""} placeholder="Filtrar por dorsal" inputMode="numeric" aria-label="Dorsal" />
-          <button className="btn secondary" type="submit">
-            Filtrar
-          </button>
-        </form>
-        {bib && (
-          <span className="muted">
-            {photos.length} fotografia(s) com o dorsal <strong>{bib}</strong> ·{" "}
-            <Link href={`/eventos/${event.slug}`}>ver todas</Link>
-          </span>
-        )}
-      </div>
+      {cars.length > 0 && (
+        <section>
+          <h2>{t("event.chooseCar")}</h2>
+          <p className="muted" style={{ marginTop: -8 }}>{t("event.chooseCarHint")}</p>
+          <CarGrid
+            baseHref={`/eventos/${event.slug}`}
+            cars={cars.map((c) => ({
+              id: c.id,
+              number: c.number,
+              driver: c.driver,
+              team: c.team,
+              photoCount: c.photo_count,
+              coverKey: c.cover_key,
+            }))}
+          />
+        </section>
+      )}
 
+      <h2>{t("event.allPhotos")}</h2>
       {photos.length === 0 ? (
-        <p className="empty">
-          {bib
-            ? "Não encontrámos fotografias com esse dorsal. Algumas fotos podem ainda não estar identificadas — veja todas."
-            : "Ainda não há fotografias neste evento."}
-        </p>
+        <p className="empty">{t("event.noPhotos")}</p>
       ) : (
         <PhotoGrid
-          highlightBib={bib}
           photos={photos.map((p) => ({
             id: p.id,
             key: p.file_key,
-            bibs: p.bibs,
             priceCents: event.price_photo_cents,
             eventId: event.id,
+            carIds: p.car_ids,
+            caption: p.car_ids
+              .map((id) => carById.get(id))
+              .filter((c) => !!c)
+              .map((c) => carLabel(c!))
+              .join(" · "),
           }))}
         />
       )}

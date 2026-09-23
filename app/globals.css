@@ -1,35 +1,22 @@
 :root {
-  --bg: #faf9f7;
-  --surface: #ffffff;
-  --text: #16161a;
-  --muted: #6b6b73;
-  --line: #e6e3de;
-  --accent: #16161a;
-  --accent-text: #ffffff;
-  --highlight: #b8872e;
-  --danger: #b3261e;
-  --ok: #1e7a44;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 8px 24px rgb(0 0 0 / 0.06);
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f0f11;
-    --surface: #18181b;
-    --text: #f2f1ee;
-    --muted: #a0a0a8;
-    --line: #2a2a2f;
-    --accent: #f2f1ee;
-    --accent-text: #0f0f11;
-    --highlight: #d9a441;
-    --danger: #ef6b62;
-    --ok: #4cc27f;
-    color-scheme: dark;
-  }
+  /* Paleta escura, como o site atual do fotógrafo */
+  --bg: #161311;
+  --bg-2: #1e1a17;
+  --surface: #221e1b;
+  --text: #f3efe9;
+  --muted: #a39b92;
+  --line: #342e29;
+  --accent: #f3efe9;
+  --accent-text: #161311;
+  --highlight: #e8a33d;
+  --danger: #f06a5e;
+  --ok: #4cc27f;
+  --radius: 4px;
+  --shadow: 0 8px 30px rgb(0 0 0 / 0.35);
+  --display: "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --serif: var(--display);
+  --sans: "Roboto Condensed", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +30,10 @@ body {
 }
 a { color: inherit; }
 img { display: block; max-width: 100%; }
-h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: 0.02em; line-height: 1.15; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.8rem; color: var(--muted); }
+.section-title { text-align: center; font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 72px 0 8px; }
+.section-sub { text-align: center; color: var(--muted); margin: 0 auto 36px; max-width: 620px; }
 h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); margin: 0 0 0.4em; }
 h2 { font-size: 1.5rem; margin: 1.6em 0 0.6em; }
 
@@ -67,8 +57,6 @@ h2 { font-size: 1.5rem; margin: 1.6em 0 0.6em; }
   display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px;
   border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.75rem; font-weight: 600;
 }
-.nav .show-sm { display: none; }
-@media (max-width: 560px) { .nav .hide-sm { display: none; } .nav .show-sm { display: inline; } .nav { gap: 14px; } .brand { font-size: 1.1rem; } }
 
 main { min-height: 70vh; padding-bottom: 64px; }
 
@@ -233,3 +221,112 @@ th { color: var(--muted); font-weight: 500; font-size: 0.82rem; text-transform: 
 .progress { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 12px; }
 .progress > div { height: 100%; background: var(--highlight); transition: width 0.2s; }
 .stack { display: grid; gap: 24px; }
+
+/* ══ Tema drift / Luís Cunha ═════════════════════════════ */
+body { font-size: 1.02rem; letter-spacing: 0.01em; }
+.site-header { background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom-color: transparent; }
+.site-header .container { height: 88px; max-width: 1340px; }
+.brand { display: flex; align-items: center; font-size: 1.15rem; letter-spacing: 0.25em; text-transform: uppercase; line-height: 1.05; }
+.brand img { height: 56px; width: auto; }
+.brand .wordmark { display: grid; }
+.brand .wordmark small { font-size: 1.65em; letter-spacing: 0.12em; font-weight: 300; }
+.nav { gap: 26px; }
+.nav a { color: var(--text); opacity: 0.8; font-size: 1rem; }
+.nav a:hover, .nav a.active { opacity: 1; }
+.menu-toggle { display: none; background: none; border: 0; color: var(--text); font-size: 1.6rem; cursor: pointer; }
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang-switch button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.78rem; padding: 3px 9px; cursor: pointer; letter-spacing: 0.08em; }
+.lang-switch button.on { background: var(--text); color: var(--bg); }
+@media (max-width: 860px) {
+  .site-header .container { height: 68px; }
+  .brand img { height: 40px; }
+  .menu-toggle { display: block; }
+  .nav .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0; background: var(--bg);
+    flex-direction: column; padding: 12px 16px 20px; gap: 4px; border-bottom: 1px solid var(--line);
+  }
+  .nav .nav-links a { padding: 10px 0; font-size: 1.1rem; }
+  .nav.open .nav-links { display: flex; }
+  .nav { gap: 14px; }
+}
+.nav-links { display: flex; gap: 26px; align-items: center; }
+
+.btn { border-radius: 3px; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; }
+.btn.accent { background: var(--highlight); border-color: var(--highlight); color: #1a1208; }
+
+/* Hero */
+.hero-img { position: relative; height: min(78vh, 760px); min-height: 380px; background: #000; overflow: hidden; }
+.hero-img img { width: 100%; height: 100%; object-fit: cover; opacity: 0.88; }
+.hero-img .overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 0 0 56px; background: linear-gradient(180deg, transparent 40%, rgb(0 0 0 / 0.75));
+}
+.hero-img h1 { font-size: clamp(2rem, 5vw, 3.6rem); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+.hero-img p { color: #ddd; margin: 0 0 22px; max-width: 560px; }
+.hero-plain { padding: 72px 0 24px; }
+.search-bar input { background: rgb(255 255 255 / 0.08); border-color: rgb(255 255 255 / 0.2); color: #fff; }
+.search-bar input::placeholder { color: rgb(255 255 255 / 0.55); }
+
+/* Cartões de evento (como no Pixieset: foto, data, título espaçado) */
+.event-grid { gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.event-card { text-align: center; }
+.event-card .cover { border-radius: 0; }
+.event-card .date { color: var(--muted); margin-top: 14px; font-size: 0.95rem; }
+.event-card h3 { text-transform: uppercase; letter-spacing: 0.22em; font-size: 1.05rem; font-weight: 600; margin: 8px 0 4px; }
+.event-card .meta { font-size: 0.85rem; }
+
+/* Próximos eventos */
+.upcoming-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.upcoming { text-align: center; text-decoration: none; }
+.upcoming .poster { aspect-ratio: 4 / 3; background: var(--surface); overflow: hidden; display: grid; place-items: center; }
+.upcoming .poster img { width: 100%; height: 100%; object-fit: cover; }
+.upcoming .when { text-transform: uppercase; letter-spacing: 0.2em; font-weight: 600; margin-top: 16px; }
+.upcoming .what { color: var(--muted); white-space: pre-line; }
+
+/* Portefólio */
+.masonry { columns: 3 300px; column-gap: 10px; }
+.masonry figure { margin: 0 0 10px; break-inside: avoid; position: relative; }
+.masonry figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 12px 10px; font-size: 0.85rem; background: linear-gradient(transparent, rgb(0 0 0 / 0.7)); opacity: 0; transition: opacity 0.2s; }
+.masonry figure:hover figcaption { opacity: 1; }
+
+/* Carros */
+.car-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+@media (max-width: 520px) { .car-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
+.car-card { position: relative; display: block; text-decoration: none; background: var(--surface); overflow: hidden; border-radius: var(--radius); }
+.car-card .img { aspect-ratio: 3 / 2; background: #000; }
+.car-card .img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease, opacity 0.2s; opacity: 0.9; }
+.car-card:hover .img img { transform: scale(1.04); opacity: 1; }
+.car-card .num {
+  position: absolute; top: 8px; left: 8px; min-width: 44px; padding: 2px 10px; text-align: center;
+  background: var(--highlight); color: #1a1208; font-weight: 700; font-size: 1.15rem; border-radius: 2px;
+}
+.car-card .info { padding: 10px 12px 12px; }
+.car-card .driver { font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.car-card .team, .car-card .count { color: var(--muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.car-head { display: flex; gap: 18px; align-items: center; }
+.car-head .big-num { background: var(--highlight); color: #1a1208; font-weight: 700; font-size: 2.2rem; padding: 2px 16px; border-radius: 3px; }
+
+.card { border-radius: var(--radius); }
+.pack-box .price { font-family: var(--display); font-size: 2rem; }
+.filter-input { max-width: 320px; }
+
+/* Páginas de texto */
+.about { display: grid; gap: 40px; align-items: start; }
+@media (min-width: 900px) { .about { grid-template-columns: 1fr 1fr; } }
+.about img { width: 100%; }
+.about .text { white-space: pre-line; color: #ddd; font-size: 1.08rem; }
+.contact-list { list-style: none; padding: 0; display: grid; gap: 10px; font-size: 1.05rem; }
+.contact-list a { text-decoration: none; }
+.site-footer { text-align: center; }
+.site-footer .container { justify-content: center; flex-direction: column; align-items: center; }
+.site-footer .social { display: flex; gap: 18px; }
+
+/* Admin: barra de ações em massa e seleção de fotos */
+.bulk-bar { position: sticky; top: 96px; z-index: 5; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 14px; margin-bottom: 12px; }
+.bulk-bar select { width: auto; min-width: 180px; padding: 6px 10px; }
+.admin-photo { position: relative; }
+.admin-photo .pick { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; accent-color: var(--highlight); cursor: pointer; }
+.admin-photo label.cover { cursor: pointer; display: block; }
+.admin-photo:has(.pick:checked) { outline: 3px solid var(--highlight); }
+.tag { display: inline-block; background: var(--highlight); color: #1a1208; font-weight: 700; font-size: 0.75rem; padding: 0 6px; border-radius: 2px; margin-right: 4px; }
+.car-row input { padding: 6px 8px; }

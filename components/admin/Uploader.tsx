@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 
 const PARALLEL = 3;
 
-export function Uploader({ eventId }: { eventId: number }) {
+type UploadCar = { id: number; number: string; driver: string };
+
+export function Uploader({ eventId, cars }: { eventId: number; cars: UploadCar[] }) {
   const router = useRouter();
+  const [carId, setCarId] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -25,6 +28,7 @@ export function Uploader({ eventId }: { eventId: number }) {
         const body = new FormData();
         body.set("eventId", String(eventId));
         body.set("file", file);
+        if (carId) body.set("carId", carId);
         try {
           const res = await fetch("/api/admin/photos", { method: "POST", body });
           if (!res.ok) {
@@ -44,6 +48,19 @@ export function Uploader({ eventId }: { eventId: number }) {
   }
 
   return (
+    <>
+    <div className="field" style={{ maxWidth: 420 }}>
+      <label htmlFor="upload-car">Estas fotos são do carro…</label>
+      <select id="upload-car" value={carId} onChange={(e) => setCarId(e.target.value)} disabled={!!progress}>
+        <option value="">— Fotos gerais (sem carro) —</option>
+        {cars.map((c) => (
+          <option key={c.id} value={c.id}>
+            #{c.number} {c.driver}
+          </option>
+        ))}
+      </select>
+      <small>Carrega as fotos de um piloto de cada vez: escolhe o carro e arrasta as fotos.</small>
+    </div>
     <div
       className={`dropzone ${over ? "over" : ""}`}
       onDragOver={(e) => {
@@ -73,8 +90,7 @@ export function Uploader({ eventId }: { eventId: number }) {
         }}
       />
       <p className="hint" style={{ marginBottom: 0 }}>
-        Carregue os originais em alta resolução — o site cria automaticamente as pré-visualizações com marca de água.
-        Dica: dorsais no nome do ficheiro (ex.: <code>IMG_0042_d123.jpg</code>) são identificados automaticamente.
+        Carrega os originais em alta resolução — o site cria automaticamente as pré-visualizações com marca de água.
       </p>
       {progress && (
         <>
@@ -94,5 +110,6 @@ export function Uploader({ eventId }: { eventId: number }) {
         </ul>
       )}
     </div>
+    </>
   );
 }

@@ -3,16 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
+import { useI18n } from "@/components/I18nProvider";
 import { formatEUR } from "@/lib/format";
 import { thumbUrl } from "@/lib/media";
 import { cartItemKey, type CartItem, type Quote, type QuoteLine } from "@/lib/cart-types";
+import type { DictKey } from "@/lib/i18n";
 
 function lineItem(l: QuoteLine): CartItem {
-  return l.type === "pack" ? { type: "pack", eventId: l.eventId } : { type: "photo", photoId: l.photoId! };
+  if (l.type === "pack") return { type: "pack", eventId: l.eventId };
+  if (l.type === "carpack") return { type: "carpack", carId: l.carId! };
+  return { type: "photo", photoId: l.photoId! };
 }
 
-export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
+export function CartView({ demo }: { demo: boolean }) {
   const cart = useCart();
+  const { t, lang } = useI18n();
+  const eur = (c: number) => formatEUR(c, lang);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [codeInput, setCodeInput] = useState("");
   const [code, setCode] = useState("");
@@ -41,7 +47,7 @@ export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
           cart.replace(cart.items.filter((i) => !drop.has(cartItemKey(i))));
         }
       })
-      .catch(() => !cancelled && setError("Não foi possível calcular o total."));
+      .catch(() => !cancelled && setError(t("cart.error")));
     return () => {
       cancelled = true;
     };
@@ -59,26 +65,35 @@ export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
         body: JSON.stringify({ items: cart.items, code, email, name, nif, acceptTerms: accept }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao iniciar o pagamento.");
+      if (!res.ok) throw new Error(t((data.error as DictKey) ?? "err.generic"));
       window.location.href = data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado.");
+      setError(err instanceof Error ? err.message : t("err.generic"));
       setSubmitting(false);
     }
   }
 
-  if (!cart.ready || (!quote && cart.count > 0)) return <p className="empty">A carregar…</p>;
+  function lineTitle(l: QuoteLine) {
+    if (l.type === "pack") return t("cart.pack", { n: l.photoCount });
+    if (l.type === "carpack") return t("cart.carpack", { subject: l.subject, n: l.photoCount });
+    return t("cart.photo", { subject: l.subject });
+  }
+
+  if (!cart.ready || (!quote && cart.count > 0)) return <p className="empty">{t("cart.loading")}</p>;
 
   if (cart.count === 0 || !quote || quote.lines.length === 0) {
     return (
       <div className="empty">
-        <p>O seu carrinho está vazio.</p>
-        <Link href="/" className="btn">
-          Ver eventos
+        <p>{t("cart.empty")}</p>
+        <Link href="/eventos" className="btn">
+          {t("cart.browse")}
         </Link>
       </div>
     );
   }
+
+  const [termsBefore, rest] = t("cart.terms").split("{terms}");
+  const [termsMiddle, termsAfter] = (rest ?? "").split("{privacy}");
 
   return (
     <div className="cart-layout">
@@ -87,19 +102,19 @@ export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
           <div key={cartItemKey(lineItem(l))} className="cart-line">
             {l.thumbKey ? <img src={thumbUrl(l.thumbKey)} alt="" /> : <div />}
             <div>
-              <div className="title">{l.label}</div>
+              <div className="title">{lineTitle(l)}</div>
               <div className="sub">{l.eventTitle}</div>
             </div>
             <div className="right">
-              <div>{formatEUR(l.priceCents)}</div>
+              <div>{eur(l.priceCents)}</div>
               <button className="link-btn" onClick={() => cart.remove(lineItem(l))}>
-                Remover
+                {t("cart.remove")}
               </button>
             </div>
           </div>
         ))}
         <p className="hint" style={{ marginTop: 12 }}>
-          Recebe as fotografias em alta resolução, sem marca de água, por email e nesta página logo após o pagamento.
+          {t("cart.delivery")}
         </p>
       </section>
 
@@ -113,17 +128,22 @@ export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
           }}
         >
           <div style={{ flex: "1 1 auto" }}>
-            <label htmlFor="code">Código de desconto</label>
+            <label htmlFor="code">{t("cart.code")}</label>
             <input id="code" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} autoComplete="off" />
           </div>
           <button className="btn secondary" type="submit" style={{ flex: "0 0 auto" }}>
-            Aplicar
+            {t("cart.apply")}
           </button>
         </form>
-        {code && quote.discountError && <p className="error">{quote.discountError}</p>}
+        {code && quote.discountError && <p className="error">{t(`err.${quote.discountError}`)}</p>}
         {quote.discount && (
           <p className="success">
-            Código <strong>{quote.discount.code}</strong> aplicado: {quote.discount.description}.{" "}
+            {t("cart.codeApplied", {
+              code: quote.discount.code,
+              desc: t("cart.off", {
+                value: quote.discount.kind === "percent" ? `${quote.discount.value}%` : eur(quote.discount.value),
+              }),
+            })}{" "}
             <button
               className="link-btn"
               onClick={() => {
@@ -131,55 +151,67 @@ export function CartView({ paymentsLabel }: { paymentsLabel: string[] }) {
                 setCodeInput("");
               }}
             >
-              remover
+              {t("cart.codeRemove")}
             </button>
           </p>
         )}
 
         <div className="line">
-          <span>Subtotal</span>
-          <span>{formatEUR(quote.subtotalCents)}</span>
+          <span>{t("cart.subtotal")}</span>
+          <span>{eur(quote.subtotalCents)}</span>
         </div>
         {quote.discountCents > 0 && (
           <div className="line">
-            <span>Desconto</span>
-            <span>−{formatEUR(quote.discountCents)}</span>
+            <span>{t("cart.discount")}</span>
+            <span>−{eur(quote.discountCents)}</span>
           </div>
         )}
         <div className="line total">
-          <span>Total</span>
-          <span>{formatEUR(quote.totalCents)}</span>
+          <span>{t("cart.total")}</span>
+          <span>{eur(quote.totalCents)}</span>
         </div>
-        <p className="hint" style={{ marginTop: 0 }}>Preços finais, com IVA incluído quando aplicável.</p>
+        <p className="hint" style={{ marginTop: 0 }}>
+          {t("cart.vat")}
+        </p>
 
         <form onSubmit={checkout} style={{ marginTop: 18 }}>
           <div className="field">
-            <label htmlFor="email">Email *</label>
+            <label htmlFor="email">{t("cart.email")} *</label>
             <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-            <small>É para aqui que enviamos o link de download.</small>
+            <small>{t("cart.emailHint")}</small>
           </div>
           <div className="field">
-            <label htmlFor="name">Nome</label>
+            <label htmlFor="name">{t("cart.name")}</label>
             <input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </div>
           <div className="field">
-            <label htmlFor="nif">NIF (opcional, para fatura)</label>
+            <label htmlFor="nif">{t("cart.nif")}</label>
             <input id="nif" value={nif} onChange={(e) => setNif(e.target.value)} inputMode="numeric" maxLength={9} />
           </div>
           <label className="checkbox field">
             <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} required />
             <span>
-              Li e aceito os <Link href="/termos" target="_blank">termos e condições</Link> e a{" "}
-              <Link href="/privacidade" target="_blank">política de privacidade</Link>. Aceito que o download
-              imediato do conteúdo digital implica a perda do direito de livre resolução.
+              {termsBefore}
+              <Link href="/termos" target="_blank">
+                {t("cart.termsLink")}
+              </Link>
+              {termsMiddle}
+              <Link href="/privacidade" target="_blank">
+                {t("cart.privacyLink")}
+              </Link>
+              {termsAfter}
             </span>
           </label>
           {error && <p className="error">{error}</p>}
-          <button className="btn block" type="submit" disabled={submitting}>
-            {submitting ? "A redirecionar…" : quote.totalCents === 0 ? "Obter fotografias" : `Pagar ${formatEUR(quote.totalCents)}`}
+          <button className="btn block accent" type="submit" disabled={submitting}>
+            {submitting
+              ? t("cart.redirecting")
+              : quote.totalCents === 0
+                ? t("cart.getFree")
+                : t("cart.pay", { price: eur(quote.totalCents) })}
           </button>
           <div className="pay-methods">
-            {paymentsLabel.map((m) => (
+            {(demo ? [t("cart.demo")] : ["MB Way", "Multibanco", "Visa / Mastercard", "Apple Pay", "Google Pay"]).map((m) => (
               <span key={m}>{m}</span>
             ))}
           </div>

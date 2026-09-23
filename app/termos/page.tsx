@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { config } from "@/lib/config";
+import { getT } from "@/lib/i18n-server";
 
 export const metadata: Metadata = { title: "Termos e condições" };
 
 // Modelo base — deve ser revisto e completado com os dados legais do vendedor.
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { lang } = await getT();
+  if (lang === "en") return <TermsPageEn />;
   return (
     <div className="container prose" style={{ paddingTop: 40 }}>
       <h1>Termos e condições</h1>
@@ -35,7 +38,8 @@ export default function TermsPage() {
       <h2>5. Utilização das fotografias</h2>
       <p>
         A compra concede uma licença de uso pessoal e não comercial (ex.: redes sociais pessoais, impressão para uso
-        próprio). Os direitos de autor mantêm-se do fotógrafo. Para uso comercial, contacte-nos.
+        próprio). Os direitos de autor mantêm-se do fotógrafo. Para uso comercial (equipas, patrocinadores,
+        publicidade), contacte-nos.
       </p>
       <h2>6. Resolução de litígios</h2>
       <p>
@@ -45,6 +49,41 @@ export default function TermsPage() {
           www.consumidor.gov.pt
         </a>
         .
+      </p>
+    </div>
+  );
+}
+
+function TermsPageEn() {
+  return (
+    <div className="container prose" style={{ paddingTop: 40 }}>
+      <h1>Terms and conditions</h1>
+      <p className="muted">[To be completed with the seller&apos;s legal details: name/company, tax number, address.]</p>
+      <h2>1. Product</h2>
+      <p>
+        {config.siteName} sells full-resolution digital photos delivered by download. Previews on the website carry a
+        watermark and reduced resolution; the delivered file has no watermark.
+      </p>
+      <h2>2. Prices and payment</h2>
+      <p>
+        Prices are shown in euros and are final. Payment can be made by MB Way, Multibanco reference or card through a
+        secure payment platform. Payment details are not stored on this website.
+      </p>
+      <h2>3. Delivery</h2>
+      <p>
+        Once payment is confirmed, you receive an email with a download link valid for {config.downloadDays} days.
+        Multibanco payments are confirmed when the reference is paid.
+      </p>
+      <h2>4. Right of withdrawal</h2>
+      <p>
+        As digital content supplied immediately, you expressly consent to the start of supply and acknowledge that you
+        lose the right of withdrawal (Portuguese Decree-Law 24/2014, art. 17(1)(m)). If a file has a technical problem,
+        contact us for a replacement.
+      </p>
+      <h2>5. Use of photos</h2>
+      <p>
+        Purchase grants a personal, non-commercial licence (e.g. personal social media, prints for own use). Copyright
+        remains with the photographer. For commercial use (teams, sponsors, advertising), please contact us.
       </p>
     </div>
   );

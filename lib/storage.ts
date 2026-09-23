@@ -8,7 +8,8 @@ import { config } from "./config";
  * diretamente; só as pré-visualizações com marca de água são públicas.
  * Para escalar, este módulo é o único sítio a trocar por S3 / Cloudflare R2.
  */
-export type Variant = "originals" | "previews" | "thumbs";
+/** "site" = imagens do site (logótipo, capa, portefólio, cartazes). */
+export type Variant = "originals" | "previews" | "thumbs" | "site";
 
 const KEY_RE = /^[a-f0-9-]{36}$/;
 
@@ -37,4 +38,17 @@ export async function removePhotoFiles(key: string, originalExt: string) {
     fs.promises.rm(filePath("previews", key), { force: true }),
     fs.promises.rm(filePath("thumbs", key), { force: true }),
   ]);
+}
+
+export async function readFile(variant: Variant, key: string, ext = "jpg"): Promise<Buffer | null> {
+  try {
+    return await fs.promises.readFile(filePath(variant, key, ext));
+  } catch {
+    return null;
+  }
+}
+
+export async function removeFile(variant: Variant, key: string, ext = "jpg") {
+  if (!isValidKey(key)) return;
+  await fs.promises.rm(filePath(variant, key, ext), { force: true });
 }
