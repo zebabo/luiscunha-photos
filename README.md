@@ -37,7 +37,6 @@ com pesquisa por carro/piloto, packs e pagamento por MB Way, Multibanco e cartã
 Requer Node.js 20+.
 
 ```bash
-cd galeria
 npm install
 cp .env.example .env.local      # editar ADMIN_PASSWORD e SESSION_SECRET
 npm run dev                     # http://localhost:3000  ·  admin em /admin
